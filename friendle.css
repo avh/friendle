@@ -1,0 +1,135 @@
+#header {
+    font-size: 16pt;
+}
+#msg {
+    font-size: 12pt;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    height: 15px;
+}
+body {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    margin-top: 8px;
+    margin-left: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    font-family: sans-serif;
+}
+.game {
+    display: block;
+    width: 100%;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.game .board {
+    display: inline-block;
+}
+.game table {
+    width: 200px;
+    margin: 3px 5px;
+    border-spacing: 8px 10px;
+}
+.game td {
+    text-align: center;
+    font-weight: bold;
+    width: 20px;
+    height: 25px;
+}
+.keyboard {
+    width: 100%;
+    text-align: center;
+    margin: 10px auto 5px auto;
+    display: block;
+}
+.row div {
+    display: inline-block;
+    font-size: 12pt;
+    margin: 2px;
+    border-radius: 5px;
+    text-decoration: none;
+    text-align: center;
+    padding: 6px 8px;
+    width:12px;
+}
+#enter {
+    width: 40px;
+}
+#backspace {
+    width: 25px;
+}
+#P {
+    margin: 0px 35px 0px 0px;
+}
+@keyframes press {
+    from{transform:scale(1.0)}
+    50%{transform:scale(1.5)}
+    to{transform:scale(1.0)}
+}
+.pressed {
+    animation: press 0.3s ease;
+}
+
+@keyframes popout1 {
+    from{transform:scale(0)}
+    80%{transform:scale(1.2)}
+    to{transform:scale(1)}
+}
+@keyframes popout2 {
+    from{transform:scale(0)}
+    80%{transform:scale(1.2)}
+    to{transform:scale(1)}
+}
+@keyframes popout3 {
+    from{transform:scale(0)}
+    80%{transform:scale(1.2)}
+    to{transform:scale(1)}
+}
+
+.empty {
+    border: 2px solid #DDDDDD;
+    background: white;
+    color: black;
+}
+.typed {
+    border: 2px solid #777777;
+    background: white;
+    color: black;
+    animation: popout1 0.3s ease;
+}
+.gray {
+    border: 0px;
+    background: #777777;
+    color: white;
+    animation: popout2 0.4s ease;
+}
+.yellow {
+    border: 0px;
+    background: #EECC00;
+    color: white;
+    animation: popout3 0.5s ease;
+}
+.green {
+    border: 0px;
+    background: #44AA44;
+    color: white;
+    animation: popout3 0.7s ease;
+}
+.down {
+    border: 0px;
+    background: black;
+    color: #DDDDDD;
+}
+.up {
+    border: 0px;
+    background: #DDDDDD;
+    color: black;
+}
+.error {
+    border: 0px;
+    background: #FF0000;
+    color: black;
+}
