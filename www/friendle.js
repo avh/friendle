@@ -46,13 +46,14 @@ function setState(state, msg) {
 function connectServer() {
     setState('connecting', 'Connecting...');
 
-    host = location.host;
+    let protocol = location.protocol;
+    var host = location.host;
     if (host.indexOf(':') > 0) {
         host = host.substring(0, host.indexOf(':'));
     }
     console.log("server: " + host);
     try {
-        server = io("http://" + host + ":8081");
+        server = io(protocol + "//" + host + "/");
         server.on('connect', () => {
             console.log("connect: " + server.id);
             server.emit('join', ours.game);

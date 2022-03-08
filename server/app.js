@@ -19,7 +19,6 @@ class SimpleGameServer {
     constructor(httpServer) {
         this.waiting = new TwoWayMap();
         this.peers = new TwoWayMap();
-        this.debug = true;
         this.init(httpServer);
     }
 
@@ -28,9 +27,13 @@ class SimpleGameServer {
             cors: {
                 origin: '*',
             },
+	    pingInterval: 10000,
+            pingTimeout: 20000,
         });
 
         server.sockets.on('connection', (socket) => {
+            console.log("got connection");
+
             this._handleConnect(server, socket);
             socket.on('join', (game) => this._handleJoin(server, socket, game));
             socket.on('signal', (msg) => this._handleSignal(server, socket, msg));
@@ -40,15 +43,11 @@ class SimpleGameServer {
     }
 
     _handleConnect(server, socket) {
-        if (this.debug) {
-            console.log("connect: " + socket.id);
-        }
+	//console.log("connect: " + socket.id);
     }
 
     _handleJoin(server, socket, game) {
-        if (this.debug) {
-            console.log("join: " + socket.id + ", " + game);
-        }
+        console.log("join: " + socket.id + ", " + game);
         this._unpeer(server, socket);
         if (this.waiting.has(game)) {
             var waiter = this.waiting.get(game);
@@ -75,10 +74,10 @@ class SimpleGameServer {
 
     _handleSignal(server, socket, msg) {
         if (this.peers.has(socket.id) && server.sockets.sockets.has(msg.target)) {
-            console.log("signal:", JSON. stringify(msg));
+	    //console.log("signal:", JSON.stringify(msg));
             server.sockets.sockets.get(msg.target).emit('signal', msg);
         } else {
-            console.log("failed to signal: " + msg)
+	    //#console.log("failed to signal: " + JSON.stringify(msg))
             socket.emit('unpeer', msg.target);
             this.peers.del(socket.id);
         }
@@ -87,15 +86,13 @@ class SimpleGameServer {
     _unpeer(server, socket) {
         if (this.peers.has(socket.id)) {
             var other = this.peers.del(socket.id);
-            console.log("unpeer " + other + " from " + socket.id);
+            //console.log("unpeer " + other + " from " + socket.id);
             server.sockets.sockets.get(other).emit('unpeer', socket.id);
         }
     }
 
     _handleDisconnect(server, socket) {
-        if (this.debug) {
-            console.log("disconnect: " + socket.id);
-        }
+	//#console.log("disconnect: " + socket.id);
         this._unpeer(server, socket);
         this.waiting.del(socket.id);
     }
