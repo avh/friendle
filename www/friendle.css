@@ -33,6 +33,11 @@ body {
     margin: 3px 5px;
     border-spacing: 8px 10px;
 }
+.score {
+    margin-left: 10px;
+    font-size: 8pt;
+    color: gray;
+}
 .game td {
     text-align: center;
     font-weight: bold;
@@ -64,6 +69,24 @@ body {
 #P {
     margin: 0px 35px 0px 0px;
 }
+
+@keyframes shake {
+  0% { transform: translate(2px, 0px);}
+  20% { transform: translate(-2px, 0px);}
+  40% { transform: translate(2px, 0px);}
+  60% { transform: translate(-2px, 0px);}
+  80% { transform: translate(2px, 0px);}
+  100% { transform: translate(-2px, 0px);}
+}
+.wrong {
+    border: 2px solid #777777;
+    background: white;
+    color: black;
+    animation: shake 0.2s ease;
+    animation-iteration-count: 2;
+}
+
+
 @keyframes press {
     from{transform:scale(1.0)}
     50%{transform:scale(1.5)}
@@ -98,19 +121,18 @@ body {
     border: 2px solid #777777;
     background: white;
     color: black;
-    animation: popout1 0.3s ease;
 }
 .gray {
     border: 0px;
     background: #777777;
     color: white;
-    animation: popout2 0.4s ease;
+    animation: popout1 0.4s ease;
 }
 .yellow {
     border: 0px;
     background: #EECC00;
     color: white;
-    animation: popout3 0.5s ease;
+    animation: popout2 0.5s ease;
 }
 .green {
     border: 0px;

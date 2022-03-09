@@ -51,7 +51,6 @@ function connectServer() {
     if (host.indexOf(':') > 0) {
         host = host.substring(0, host.indexOf(':'));
     }
-    console.log("server: " + host);
     try {
         server = io(protocol + "//" + host + "/");
         server.on('connect', () => {
@@ -75,7 +74,7 @@ function connectServer() {
             //sound.play();
         });
         server.on('signal', (status) => {
-            console.log("signal " + JSON. stringify(status));
+	    //console.log("signal " + JSON. stringify(status));
             if (theirs.version != ours.version) {
                 theirs.state = 'incompatible';
             } else {
@@ -162,7 +161,7 @@ function updateGame() {
         } else if (ours.row == 6 && theirs.row == 6) {
             ours.state = 'draw';
             theirs.state = 'draw';
-        }
+    	}
     }
 
     if (ours.row == 0 || theirs.row == 0)  {
@@ -170,7 +169,11 @@ function updateGame() {
         updateWord(1, 0, theirs.words[0], null, true, 'typed');
     } else {
         if (currentState == 'playing') {
-            $('#msg').text("Now guess " + theirs.name + "'s starting word...");
+	    if (ours.row < 6) {
+                $('#msg').text("Now guess " + theirs.name + "'s starting word...");
+            } else {
+                $('#msg').text("You have run out of space!");
+            }
         }
 
         var ourgoal = theirs.words[0];
@@ -188,23 +191,23 @@ function updateGame() {
         updateWord(1, theirs.row, theirs.words[theirs.row], null, false, 'typed');
     }
 
-    if (currentState == 'naming' || ours.wins == 0 || ours.count == 0) {
-        $('.you').text(ours.name);
+    $('#you').text(ours.name);
+    if (currentState != 'naming' && ours.wins > 0 && ours.count > 0) {
+        $('#youscore').text(Math.floor(100*ours.wins / ours.count) + "%");
     } else {
-        $('.you').text(ours.name + " - " + Math.floor(100*ours.wins / ours.count) + "%");
+	$('#youscore').text("");
     }
-    if (theirs.wins == 0 || theirs.count == 0) {
-        $('.friend').text(theirs.name);
-    } else {
-        $('.friend').text(theirs.name + " - " + Math.floor(100*theirs.wins / theirs.count) + "%");
+    $('#friend').text(theirs.name);
+    if (theirs.wins > 0 && theirs.count > 0) {
+        $('#friendscore').text(Math.floor(100*ours.wins / ours.count) + "%");
     }
 
     if (currentState == 'playing' && ours.state != null) {
         finishGame();
     }
 
-    console.log("ours:   " + JSON. stringify(ours));
-    console.log("theirs: " + JSON. stringify(theirs));
+    //console.log("ours:   " + JSON. stringify(ours));
+    //console.log("theirs: " + JSON. stringify(theirs));
 }
 
 function showNotice(msg) {
@@ -229,13 +232,14 @@ function keyPressed(key) {
     }
 
     var action = "down";
-    console.log("key pressed: '" + key + "'");
+    var wrong = false;
+    //console.log("key pressed: '" + key + "'");
 
     if (currentState == 'naming') {
         if (key == 'enter') {
             if (ours.name.length > 3) {
                 ours.name = ours.name.substring(0, ours.name.length-1);
-                $('.you').text(ours.name);
+                $('#you').text(ours.name);
                 $.cookie('friendle.name', ours.name);
                 setState('starting', "Enter your starting word...");
             } else {
@@ -258,6 +262,7 @@ function keyPressed(key) {
                 key = key.toLowerCase();
             }
             ours.name = ours.name.substring(0, ours.name.length-1) + key + '_';
+	    key = key.toUpperCase();
         }
     } else if (key == 'enter') {
         if (currentState == 'finish') {
@@ -273,8 +278,9 @@ function keyPressed(key) {
         } else if (!words.has(ours.words[ours.row])) {
             action = "error"
             showNotice("'" + ours.words[ours.row] + "' is not a valid word!");
+	    wrong = true;
         } else {
-            console.log("word: '" + ours.words[ours.row] + "'")
+            //console.log("word: '" + ours.words[ours.row] + "'")
             ours.row = ours.row + 1
             ours.col = 0
             ours.words.push("     ");
@@ -311,6 +317,11 @@ function keyPressed(key) {
     $("#" + key).attr("class", action + " pressed")
 
     updateGame();
+    if (wrong) {
+        for (var c = 0 ; c < 5 ; c++) {
+	    $('#0' + ours.row + '' + c).addClass('wrong');
+        }
+    }
 
     if (server != null && ours.target != null) {
         server.emit('signal', ours);
@@ -416,10 +427,10 @@ async function loadFriendle() {
             });
         }
 
-        $('.you').on('click', function() {
+        $('#you').on('click', function() {
             if (currentState == 'starting') {
                 ours.name += '_';
-                $('.you').text(ours.name);
+                $('#you').text(ours.name);
                 setState("naming", "Enter your name...");
             }
         });
@@ -436,12 +447,13 @@ async function loadFriendle() {
 
         ours.name = $.cookie('friendle.name');
         if (ours.name === undefined) {
-            ours.name = "";
+            ours.name = "_";
             setState("naming", "Enter your name...");
         } else {
-            $('.you').text(ours.name);
+            $('#you').text(ours.name);
             setState("starting", "Enter your starting word...");
         }
+	updateGame();
     }
 }
 $(document).ready(loadFriendle);
