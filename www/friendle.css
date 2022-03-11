@@ -3,8 +3,8 @@
 }
 #msg {
     font-size: 12pt;
-    margin-top: 10px;
-    margin-bottom: 20px;
+    margin-top: 8px;
+    margin-bottom: 12px;
     height: 15px;
 }
 body {
@@ -30,7 +30,7 @@ body {
 }
 .game table {
     width: 200px;
-    margin: 3px 5px;
+    margin: 0px 5px;
     border-spacing: 8px 10px;
 }
 .score {
@@ -45,7 +45,7 @@ body {
     height: 25px;
 }
 .keyboard {
-    width: 100%;
+    width: 360px;
     text-align: center;
     margin: 10px auto 5px auto;
     display: block;
@@ -57,8 +57,8 @@ body {
     border-radius: 5px;
     text-decoration: none;
     text-align: center;
-    padding: 6px 8px;
-    width:12px;
+    padding: 5px 7px;
+    width:10px;
 }
 #enter {
     width: 40px;

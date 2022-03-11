@@ -1,4 +1,20 @@
-// based on https://github.com/lisajamhoury/simple-peer-server
+// Simple game server, Arthur van Hoff, (c)2022 Artfahrt Inc.
+
+let version = "0.2";
+
+let conf1 = {
+    trickle: false,
+    iceServers: [
+        {urls: 'stun:stun.l.google.com:19302'},
+        {urls: 'stun:stun1.l.google.com:19302'},
+        {urls: 'stun.ekiga.net'},
+        {urls: 'stun.voipstunt.com'},
+    ],
+}
+let conf2 = Object.assign({
+    initiator:true
+}, conf1);
+
 class TwoWayMap extends Map {
     set(key, val) {
         super.set(key, val);
@@ -36,7 +52,7 @@ class SimpleGameServer {
 
             this._handleConnect(server, socket);
             socket.on('join', (game) => this._handleJoin(server, socket, game));
-            socket.on('signal', (msg) => this._handleSignal(server, socket, msg));
+            socket.on('relay', (target, msg) => this._handleRelay(server, socket, target, msg));
             socket.on('unpeer', () => this._unpeer(server, socket));
             socket.on('disconnect', () => this._handleDisconnect(server, socket));
         });
@@ -44,6 +60,7 @@ class SimpleGameServer {
 
     _handleConnect(server, socket) {
 	//console.log("connect: " + socket.id);
+        socket.emit('welcome', version, this.waiting.count(), this.peers.count(), server.sockets.sockets.size);
     }
 
     _handleJoin(server, socket, game) {
@@ -58,8 +75,8 @@ class SimpleGameServer {
                 console.log("peer " + game + ", " + waiter);
                 this.waiting.del(game);
                 this.peers.set(socket.id, waiter);
-                socket.emit('peer', waiter);
-                server.sockets.sockets.get(waiter).emit('peer', socket.id);
+                socket.emit('peer', waiter, conf1);
+                server.sockets.sockets.get(waiter).emit('peer', socket.id, conf2);
             } else {
                 console.log("wait for " + game);
                 this.waiting.set(game, socket.id);
@@ -72,13 +89,13 @@ class SimpleGameServer {
         }
     }
 
-    _handleSignal(server, socket, msg) {
-        if (this.peers.has(socket.id) && server.sockets.sockets.has(msg.target)) {
-	    //console.log("signal:", JSON.stringify(msg));
-            server.sockets.sockets.get(msg.target).emit('signal', msg);
+    _handleRelay(server, socket, target, msg) {
+        if (this.peers.has(socket.id) && server.sockets.sockets.has(target)) {
+	    //console.log("relay:", socket.id, target, JSON.stringify(msg));
+            server.sockets.sockets.get(target).emit('relay', socket.id, msg);
         } else {
-	    //#console.log("failed to signal: " + JSON.stringify(msg))
-            socket.emit('unpeer', msg.target);
+	    //console.log("failed to relay:", socket.id, target, JSON.stringify(msg))
+            socket.emit('unpeer', target);
             this.peers.del(socket.id);
         }
     }

@@ -6,7 +6,6 @@ var version = "0.1";
 
 var ours = {
     version: version,
-    target: null,
     name: "You",
     state: null,
     words: ["     "],
@@ -17,7 +16,6 @@ var ours = {
 };
 var theirs = {
     version: version,
-    target: null,
     name: "Friend",
     state: null,
     words: ["     "],
@@ -26,13 +24,16 @@ var theirs = {
     count: 0,
     wins: 0,
 };
+
 var server = null;
+var peer = null;
 var words = new Set()
 
 let params = new URLSearchParams(window.location.search);
-var presetGame = params.get('game');
-var currentState = "unknown";
+let game = params.get('game') == null ? 'anyone' : params.get('game');
+console.log('game=', game);
 
+var currentState = "unknown";
 var last_key = null;
 var last_key_class = "up";
 var word = ""
@@ -48,42 +49,73 @@ function connectServer() {
 
     let protocol = location.protocol;
     var host = location.host;
-    if (host.indexOf(':') > 0) {
-        host = host.substring(0, host.indexOf(':'));
+    let i = host.indexOf(':');
+    if (i > 0) {
+        host = host.substring(0, i) + ":" + (parseInt(host.substring(i+1)) + 81);
     }
     try {
         server = io(protocol + "//" + host + "/");
         server.on('connect', () => {
             console.log("connect: " + server.id);
-            server.emit('join', ours.game);
+            server.emit('join', game);
+        });
+        server.on('welcome:', (version, waiting, active, connected) => {
+            console.log('welcome', version, waiting, active, connected);
         });
         server.on('wait', (active) => {
-            console.log("wait: " + ours.game + ", " + active);
+            console.log("wait: " + game + ", " + active);
             msg = "Waiting for a friend to play..."
             if (active > 0) {
                 msg += " (" + active + " active players)";
             }
             setState('waiting', msg);
         });
-        server.on('peer', (other) => {
-            console.log("peer: " + other);
-            ours.target = other;
-            server.emit('signal', ours);
-            setState('playing', "Now try to guess their starting word...");
-            $.cookie('friendle.count', ours.count + 1);
-            //sound.play();
+        server.on('peer', (id, conf) => {
+            console.log("peer:", id, JSON.stringify(conf));
+            peer = new SimplePeer(conf);
+            peer.on('signal', msg => {
+                //console.log('peer signal:', id, JSON.stringify(msg));
+                server.emit('relay', id, msg)
+            });
+            peer.on('connect', () => {
+                console.log('peer connect:', id);
+                peer.send(JSON.stringify(ours));
+                setState('playing', "Now try to guess their starting word...");
+                $.cookie('friendle.count', ours.count + 1);
+                //sound.play();
+            });
+            peer.on('data', data => {
+                msg = JSON.parse(data);
+                //console.log('peer data:', id, JSON.stringify(msg));
+                theirs = msg
+                updateGame();
+            });
+            peer.on('error', err => {
+                console.log('peer error', err);
+            });
+            peer.on('close', () => {
+                console.log('peer close', msg);
+                peer = null;
+                server.emit('unpeer');
+                if (ours.state == null) {
+                    ours.state = 'win';
+                    theirs.state = 'forfeit';
+                }
+                updateGame();
+            });
         });
-        server.on('signal', (status) => {
-	    //console.log("signal " + JSON. stringify(status));
-            if (theirs.version != ours.version) {
-                theirs.state = 'incompatible';
-            } else {
-                theirs = status;
+        server.on('relay', (id,  msg) => {
+	    //console.log("server relay", id, JSON.stringify(msg));
+            if (peer != null) {
+                peer.signal(msg);
             }
-            updateGame();
         });
-        server.on('unpeer', (other) => {
-            console.log("unpeer: " + other);
+        server.on('unpeer', (id) => {
+            console.log("server, unpeer:", id);
+            if (peer != null) {
+                peer.destroy();
+                peer = null;
+            }
             if (ours.state == null) {
                 ours.state = 'win';
                 theirs.state = 'forfeit';
@@ -199,15 +231,12 @@ function updateGame() {
     }
     $('#friend').text(theirs.name);
     if (theirs.wins > 0 && theirs.count > 0) {
-        $('#friendscore').text(Math.floor(100*ours.wins / ours.count) + "%");
+        $('#friendscore').text(Math.floor(100*theirs.wins / theirs.count) + "%");
     }
 
     if (currentState == 'playing' && ours.state != null) {
         finishGame();
     }
-
-    //console.log("ours:   " + JSON. stringify(ours));
-    //console.log("theirs: " + JSON. stringify(theirs));
 }
 
 function showNotice(msg) {
@@ -323,8 +352,8 @@ function keyPressed(key) {
         }
     }
 
-    if (server != null && ours.target != null) {
-        server.emit('signal', ours);
+    if (server != null && peer != null && currentState == 'playing') {
+        peer.send(JSON.stringify(ours));
     }
 }
 
@@ -360,8 +389,10 @@ function finishGame() {
     setState('finish', msg);
 
     if (server != null) {
-        if (ours.target != null) {
-            server.emit('signal', ours);
+        if (peer != null) {
+            peer.send(JSON.stringify(ours));
+            peer.destroy();
+            peer = null;
         }
         setTimeout(function() {
             console.log("closing");
