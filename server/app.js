@@ -4,12 +4,15 @@ let version = "0.2";
 
 let conf1 = {
     trickle: false,
-    iceServers: [
-        {urls: 'stun:stun.l.google.com:19302'},
-        {urls: 'stun:stun1.l.google.com:19302'},
-        {urls: 'stun.ekiga.net'},
-        {urls: 'stun.voipstunt.com'},
-    ],
+    config: {
+        iceServers: [
+	    {urls: 'stun:stun.l.google.com:19302'},
+	    {urls: 'stun:stun1.l.google.com:19302'},
+	    {urls: 'stun:stun.ekiga.net'},
+	    {urls: 'stun:stun.voipstunt.com'},
+	    {urls: 'turn:games.artfahrt.com', username:'friendle', credential:'turnmeon'},
+        ],
+    },
 }
 let conf2 = Object.assign({
     initiator:true

@@ -31,7 +31,7 @@ var words = new Set()
 
 let params = new URLSearchParams(window.location.search);
 let game = params.get('game') == null ? 'anyone' : params.get('game');
-console.log('game=', game);
+//console.log('game=', game);
 
 var currentState = "unknown";
 var last_key = null;
@@ -74,7 +74,7 @@ function connectServer() {
             console.log("peer:", id, JSON.stringify(conf));
             peer = new SimplePeer(conf);
             peer.on('signal', msg => {
-                //console.log('peer signal:', id, JSON.stringify(msg));
+                console.log('peer signal:', id, JSON.stringify(msg));
                 server.emit('relay', id, msg)
             });
             peer.on('connect', () => {
@@ -94,9 +94,11 @@ function connectServer() {
                 console.log('peer error', err);
             });
             peer.on('close', () => {
-                console.log('peer close', msg);
+                console.log('peer close');
                 peer = null;
-                server.emit('unpeer');
+		if (server != null) {
+                    server.emit('unpeer');
+		}
                 if (ours.state == null) {
                     ours.state = 'win';
                     theirs.state = 'forfeit';
@@ -123,7 +125,9 @@ function connectServer() {
             updateGame();
         });
         server.on('disconnect', () => {
-            if (currentState != 'finish') {
+	    if (currentState == 'waiting') {
+                location.reload(true);
+	    } else if (currentState != 'playing' && currentState != 'finish') {
                 setState('nonetwork', "Server connection lost...");
             }
         });
@@ -135,7 +139,7 @@ function connectServer() {
 function colorKey(key, color) {
     if (currentState == 'playing') {
         old = $('#' + key).attr('class');
-        if ((old != 'green' && old != color) || (color == 'gray' && old == 'down')) {
+        if ((color == 'green') || (color == 'yellow' && old != 'green') || (color == 'gray' && old != 'green' && old != 'yellow')) {
             $('#' + key).attr('class', color)
         }
     }
@@ -318,7 +322,7 @@ function keyPressed(key) {
             }
         }
     } else if (currentState == 'finish') {
-        showNotice("Hit enter to continue...");
+        showNotice("Hit again to continue...");
     } else if (key == 'backspace') {
         if (currentState == 'naming') {
             if  (ours.name.length > 0) {
@@ -387,17 +391,22 @@ function finishGame() {
         msg = "try again!";
     }
     setState('finish', msg);
+    $('#enter').text("again");
 
     if (server != null) {
-        if (peer != null) {
-            peer.send(JSON.stringify(ours));
-            peer.destroy();
-            peer = null;
+	let oldserver = server
+	let oldpeer = peer;
+	server = null;
+        peer = null;
+        if (oldpeer != null) {
+            oldpeer.send(JSON.stringify(ours));
         }
         setTimeout(function() {
             console.log("closing");
-            server.close();
-            server = null;
+            if (oldpeer != null) {
+                oldpeer.destroy();
+            }
+            oldserver.close();
         }, 1000);
     }
 }
@@ -415,7 +424,7 @@ async function loadFriendle() {
                 words.add(word);
             }
         }
-        console.log("words: " + words.size);
+        //console.log("words: " + words.size);
 
         updateGame();
 
