@@ -53,6 +53,8 @@ function restartGame() {
     theirs.words = ["     "];
     theirs.row = 0;
     theirs.col = 0;
+    theirs.count = 0;
+    theirs.wins = 0;
 
     $('#you').text(ours.name);
     $('#friend').text(theirs.name);
@@ -160,7 +162,7 @@ function connectServer() {
             }
         });
         server.on('unpeer', (id) => {
-            console.log("server, unpeer:", id);
+            //console.log("server, unpeer:", id);
             disconnectPeer();
             if (ours.state == null) {
                 ours.state = 'win';
@@ -266,7 +268,6 @@ function updateGame() {
         updateWord(0, 0, ours.words[0], null, false, ours.row == 0 ? 'typed' : 'gray');
         updateWord(1, 0, theirs.words[0], null, true, 'typed');
     } else {
-
         var ourgoal = theirs.words[0];
         updateWord(0, 0, ours.words[0], ourgoal);
         for (var r = 1 ; r < ours.row ; r++) {
@@ -293,7 +294,7 @@ function updateGame() {
         $('#friendscore').text(Math.floor(100*theirs.wins / theirs.count) + "%");
     }
 
-    if (currentState == 'playing' && ours.state != null) {
+    if (currentState != 'finish' && ours.state != null) {
         finishGame();
     }
 }
@@ -463,12 +464,11 @@ function finishGame() {
         } else {
             msg = "Congrats " + ours.name + ", you win!";
         }
-        $.cookie('friendle.wins', (ours.wins + 1).toString());
+        ours.wins += 1
+        $.cookie('friendle.wins', ours.wins.toString());
     } else if (ours.state == 'draw') {
-        $.cookie('friendle.wins', (ours.count - 1).toString());
         msg = "Argh, it's a draw.";
     } else if (ours.state == 'incompatible') {
-        $.cookie('friendle.wins', (ours.count - 1).toString());
         msg = "Oops, their version is not compatible.";
     } else if (ours.state == 'forfeit') {
         msg = "You forfeit, so you lose, sorry!";
