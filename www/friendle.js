@@ -2,11 +2,11 @@
 // robot
 // shake animation
 
-var version = "0.1";
+var version = '0.2';
 
 var ours = {
     version: version,
-    name: "You",
+    name: null,
     state: null,
     words: ["     "],
     row: 0,
@@ -31,12 +31,11 @@ var words = new Set()
 
 let params = new URLSearchParams(window.location.search);
 let game = params.get('game') == null ? 'anyone' : params.get('game');
-//console.log('game=', game);
+ours.name = params.get('name');
 
 var currentState = "unknown";
 var last_key = null;
 var last_key_class = "up";
-var word = ""
 //var sound = new Audio("dong.wav");
 
 function setState(state, msg) {
@@ -44,9 +43,48 @@ function setState(state, msg) {
     $('#msg').text(msg);
 }
 
-function connectServer() {
-    setState('connecting', 'Connecting...');
+function restartGame() {
+    ours.state = null;
+    ours.words = ["     "];
+    ours.row = 0;
+    ours.col = 0;
+    theirs.name = "Friend";
+    theirs.state = null;
+    theirs.words = ["     "];
+    theirs.row = 0;
+    theirs.col = 0;
 
+    $('#you').text(ours.name);
+    $('#friend').text(theirs.name);
+    $('#friendscore').text('');
+    $('.board td').attr('class', 'empty').text(' ');
+    $('.keyboard .row div').attr('class', 'up');
+    $('#enter').text("enter");
+
+    disconnectPeer();
+
+    if (ours.name == null) {
+        ours.name = $.cookie('friendle.name');
+        if (ours.name === undefined) {
+            ours.name = "_";
+            setState("naming", "Enter your name...");
+        } else {
+            ours.name += "_";
+            setState("naming", "Check your name...");
+        }
+    } else {
+        setState("connecting", "Connecting...");
+        if (server == null) {
+            connectServer();
+        } else {
+            //console.log("reconnect: " + server.id);
+            server.emit('join', game);
+        }
+    }
+    updateGame();
+}
+
+function connectServer() {
     let protocol = location.protocol;
     var host = location.host;
     let i = host.indexOf(':');
@@ -56,11 +94,14 @@ function connectServer() {
     try {
         server = io(protocol + "//" + host + "/");
         server.on('connect', () => {
-            console.log("connect: " + server.id);
+            //console.log("connect: " + server.id);
             server.emit('join', game);
         });
-        server.on('welcome:', (version, waiting, active, connected) => {
-            console.log('welcome', version, waiting, active, connected);
+        server.on('welcome:', (serverVersion, waiting, active, connected) => {
+            console.log('welcome', serverVersion, waiting, active, connected);
+            if (serverVersion != version) {
+                location.reload(true);
+            }
         });
         server.on('wait', (active) => {
             console.log("wait: " + game + ", " + active);
@@ -71,17 +112,17 @@ function connectServer() {
             setState('waiting', msg);
         });
         server.on('peer', (id, conf) => {
-            console.log("peer:", id, JSON.stringify(conf));
+            //console.log("peer:", id, JSON.stringify(conf));
+            setState("peering", "Connecting you with a friend...");
             peer = new SimplePeer(conf);
             peer.on('signal', msg => {
-                console.log('peer signal:', id, JSON.stringify(msg));
+                //console.log('peer signal:', id, JSON.stringify(msg));
                 server.emit('relay', id, msg)
             });
             peer.on('connect', () => {
-                console.log('peer connect:', id);
+                //console.log('peer connect:', id);
                 peer.send(JSON.stringify(ours));
-                setState('playing', "Now try to guess their starting word...");
-                $.cookie('friendle.count', ours.count + 1);
+                setState('starting', "Enter your starting word...");
                 //sound.play();
             });
             peer.on('data', data => {
@@ -92,9 +133,15 @@ function connectServer() {
             });
             peer.on('error', err => {
                 console.log('peer error', err);
+                disconnectPeer();
+                if (ours.state == null) {
+                    ours.state = 'win';
+                    theirs.state = 'forfeit';
+                }
+                updateGame();
             });
             peer.on('close', () => {
-                console.log('peer close');
+                //console.log('peer close');
                 peer = null;
 		if (server != null) {
                     server.emit('unpeer');
@@ -114,22 +161,18 @@ function connectServer() {
         });
         server.on('unpeer', (id) => {
             console.log("server, unpeer:", id);
-            if (peer != null) {
-                peer.destroy();
-                peer = null;
-            }
+            disconnectPeer();
             if (ours.state == null) {
                 ours.state = 'win';
                 theirs.state = 'forfeit';
             }
             updateGame();
         });
+        server.on('error', () => {
+            restartGame();
+        });
         server.on('disconnect', () => {
-	    if (currentState == 'waiting') {
-                location.reload(true);
-	    } else if (currentState != 'playing' && currentState != 'finish') {
-                setState('nonetwork', "Server connection lost...");
-            }
+            location.reload(true);
         });
     } catch {
         setState('nonetwork', "No Network...");
@@ -199,18 +242,30 @@ function updateGame() {
             theirs.state = 'draw';
     	}
     }
+    if (currentState == 'starting') {
+        if (ours.row == 0 && theirs.row == 0) {
+            $('#msg').text("Enter your starting word...");
+        } else if (ours.row > 0 && theirs.row == 0) {
+            $('#msg').text("Wating for " + theirs.name + " to pick a starting word...");
+        } else if (ours.row == 0 && theirs.row > 0) {
+            $('#msg').text(theirs.name + " is waiting for your starting word...");
+        } else if (ours.row > 0 && theirs.row > 0) {
+            setState('playing', "Now guess " + theirs.name + "'s starting word...");
+            $.cookie('friendle.count', ours.count + 1);
+        }
+    }
+    if (currentState == 'playing') {
+	if (ours.row < 6) {
+            $('#msg').text("Now guess " + theirs.name + "'s starting word...");
+        } else {
+            $('#msg').text("You have run out of space!");
+        }
+    }
 
     if (ours.row == 0 || theirs.row == 0)  {
         updateWord(0, 0, ours.words[0], null, false, ours.row == 0 ? 'typed' : 'gray');
         updateWord(1, 0, theirs.words[0], null, true, 'typed');
     } else {
-        if (currentState == 'playing') {
-	    if (ours.row < 6) {
-                $('#msg').text("Now guess " + theirs.name + "'s starting word...");
-            } else {
-                $('#msg').text("You have run out of space!");
-            }
-        }
 
         var ourgoal = theirs.words[0];
         updateWord(0, 0, ours.words[0], ourgoal);
@@ -274,9 +329,9 @@ function keyPressed(key) {
                 ours.name = ours.name.substring(0, ours.name.length-1);
                 $('#you').text(ours.name);
                 $.cookie('friendle.name', ours.name);
-                setState('starting', "Enter your starting word...");
+                restartGame();
             } else {
-                showNotice("Your name should be more than 3 letters...");
+                showNotice("Your name should have more than 3 letters...");
                 action = "error";
             }
         } else if (key == 'backspace') {
@@ -298,12 +353,15 @@ function keyPressed(key) {
 	    key = key.toUpperCase();
         }
     } else if (key == 'enter') {
-        if (currentState == 'finish') {
-            location.reload(ours.state == 'incompatible');
-            return;
-        }
         if (currentState == 'naming') {
             setState('starting', "Enter your starting word...");
+            return;
+        }
+        if (currentState == 'finish') {
+            if (ours.state == 'incompatible') {
+                location.reload(true);
+            }
+            restartGame();
             return;
         }
         if ((currentState != 'playing' && ours.row != 0) || ours.col < 5) {
@@ -317,12 +375,10 @@ function keyPressed(key) {
             ours.row = ours.row + 1
             ours.col = 0
             ours.words.push("     ");
-            if (currentState == 'starting') {
-                connectServer();
-            }
         }
     } else if (currentState == 'finish') {
         showNotice("Hit again to continue...");
+        action = "error";
     } else if (key == 'backspace') {
         if (currentState == 'naming') {
             if  (ours.name.length > 0) {
@@ -350,13 +406,14 @@ function keyPressed(key) {
     $("#" + key).attr("class", action + " pressed")
 
     updateGame();
+
     if (wrong) {
         for (var c = 0 ; c < 5 ; c++) {
 	    $('#0' + ours.row + '' + c).addClass('wrong');
         }
     }
 
-    if (server != null && peer != null && currentState == 'playing') {
+    if (peer != null && (currentState == 'starting' || currentState == 'playing')) {
         peer.send(JSON.stringify(ours));
     }
 }
@@ -365,6 +422,36 @@ function keyReleased() {
     if (last_key != null) {
         $("#" + last_key).attr("class", last_key_class)
         last_key = null
+    }
+}
+
+function disconnectPeer() {
+    if (peer != null) {
+        let old = peer;
+        peer = null;
+        if (old != null) {
+            try {
+                old.send(JSON.stringify(ours));
+            } catch {
+            }
+        }
+        setTimeout(function() {
+            //console.log("peer closing");
+            if (old != null) {
+                old.destroy();
+            }
+        }, 1000);
+    }
+}
+
+function disconnectServer() {
+    if (server != null) {
+        let old = server;
+        server = null;
+        setTimeout(function() {
+            //console.log("server closing");
+            old.close();
+        }, 1000);
     }
 }
 
@@ -392,29 +479,30 @@ function finishGame() {
     }
     setState('finish', msg);
     $('#enter').text("again");
-
-    if (server != null) {
-	let oldserver = server
-	let oldpeer = peer;
-	server = null;
-        peer = null;
-        if (oldpeer != null) {
-            oldpeer.send(JSON.stringify(ours));
-        }
-        setTimeout(function() {
-            console.log("closing");
-            if (oldpeer != null) {
-                oldpeer.destroy();
-            }
-            oldserver.close();
-        }, 1000);
+    if (peer != null) {
+        peer.send(JSON.stringify(ours));
     }
+    disconnectPeer();
 }
 
-
+//
+// Load word list and start game
+//
 async function loadFriendle() {
+    //
+    // assign a private ID to private games
+    //
+    if (game == "private") {
+        game = "G" + Math.floor(Math.random() * Date.now());
+        console.log(location.protocol + location.host + location.pathname + "?game=" + game);
+        location.replace(location.pathname + "?game=" + game);
+        return;
+    }
+
+    //
+    // load word list
+    //
     setState("loading", "Loading...");
-    $(".keyboard .row div").attr("class", "up")
 
     let response = await fetch('words.txt')
     if (response.status == 200) {
@@ -426,8 +514,9 @@ async function loadFriendle() {
         }
         //console.log("words: " + words.size);
 
-        updateGame();
-
+        //
+        // keyboard
+        //
         $("body").keydown(function(event){
             if (event.metaKey || event.ctrlKey) {
                 return;
@@ -467,15 +556,9 @@ async function loadFriendle() {
             });
         }
 
-        $('#you').on('click', function() {
-            if (currentState == 'starting') {
-                ours.name += '_';
-                $('#you').text(ours.name);
-                setState("naming", "Enter your name...");
-            }
-        });
-        $('.game td').attr('class', 'empty');
-
+        //
+        // stats
+        //
         count = $.cookie('friendle.count');
         if (count != undefined) {
             ours.count = parseInt(count)
@@ -485,15 +568,10 @@ async function loadFriendle() {
             }
         }
 
-        ours.name = $.cookie('friendle.name');
-        if (ours.name === undefined) {
-            ours.name = "_";
-            setState("naming", "Enter your name...");
-        } else {
-            $('#you').text(ours.name);
-            setState("starting", "Enter your starting word...");
-        }
-	updateGame();
+        //
+        // restart
+        //
+        restartGame();
     }
 }
 $(document).ready(loadFriendle);
