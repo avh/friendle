@@ -59,11 +59,11 @@ function typeWord(word, i=0) {
         });
     } else {
         randomTimeout(typeTime, function() {
-            if (i > 0 && randomInt([0, 10]) < 1) {
+            if (i > 0 && ours.row > 0 && randomInt([0, 10]) < 1) {
                 keyPressed('backspace');
                 keyReleased();
                 typeWord(word, i-1);
-            } else if (ours.col < 5 && randomInt([0, 10]) < 1) {
+            } else if (ours.col < 5 && ours.row > 0 && randomInt([0, 10]) < 1) {
                 let j = randomInt([0, 25]);
                 let ch = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".substring(j,j+1);
                 keyPressed(ch);
