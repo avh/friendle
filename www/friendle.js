@@ -118,20 +118,26 @@ function connectServer() {
             setState("peering", "Connecting you with a friend...");
             peer = new SimplePeer(conf);
             peer.on('signal', msg => {
-                //console.log('peer signal:', id, JSON.stringify(msg));
-                server.emit('relay', id, msg)
+                if (peer != null) {
+                    //console.log('peer signal:', id, JSON.stringify(msg));
+                    server.emit('relay', id, msg)
+                }
             });
             peer.on('connect', () => {
                 //console.log('peer connect:', id);
-                peer.send(JSON.stringify(ours));
-                setState('starting', "Enter your starting word...");
+                if (peer != null) {
+                    peer.send(JSON.stringify(ours));
+                    setState('starting', "Enter your starting word...");
+                }
                 //sound.play();
             });
             peer.on('data', data => {
-                msg = JSON.parse(data);
-                //console.log('peer data:', id, JSON.stringify(msg));
-                theirs = msg
-                updateGame();
+                if (peer != null) {
+                    msg = JSON.parse(data);
+                    //console.log('peer data:', id, JSON.stringify(msg));
+                    theirs = msg
+                    updateGame();
+                }
             });
             peer.on('error', err => {
                 console.log('peer error', err);
@@ -253,7 +259,6 @@ function updateGame() {
             $('#msg').text(theirs.name + " is waiting for your starting word...");
         } else if (ours.row > 0 && theirs.row > 0) {
             setState('playing', "Now guess " + theirs.name + "'s starting word...");
-            $.cookie('friendle.count', ours.count + 1);
         }
     }
     if (currentState == 'playing') {
@@ -415,7 +420,11 @@ function keyPressed(key) {
     }
 
     if (peer != null && (currentState == 'starting' || currentState == 'playing')) {
-        peer.send(JSON.stringify(ours));
+        try {
+            peer.send(JSON.stringify(ours));
+        } catch {
+            console.log("peer send failed");
+        }
     }
 }
 
@@ -464,7 +473,9 @@ function finishGame() {
         } else {
             msg = "Congrats " + ours.name + ", you win!";
         }
-        ours.wins += 1
+        ours.count += 1;
+        $.cookie('friendle.count', ours.wins.toString());
+        ours.wins += 1;
         $.cookie('friendle.wins', ours.wins.toString());
     } else if (ours.state == 'draw') {
         msg = "Argh, it's a draw.";
@@ -474,13 +485,19 @@ function finishGame() {
         msg = "You forfeit, so you lose, sorry!";
     } else if (ours.state == 'lose') {
         msg = theirs.name + " wins!";
+        ours.count += 1;
+        $.cookie('friendle.count', ours.wins.toString());
     } else {
         msg = "try again!";
     }
     setState('finish', msg);
     $('#enter').text("again");
     if (peer != null) {
-        peer.send(JSON.stringify(ours));
+        try {
+            peer.send(JSON.stringify(ours));
+        } catch {
+            console.log("peer send failed");
+        }
     }
     disconnectPeer();
 }
@@ -559,12 +576,12 @@ async function loadFriendle() {
         //
         // stats
         //
-        count = $.cookie('friendle.count');
+        let count = $.cookie('friendle.count');
         if (count != undefined) {
             ours.count = parseInt(count)
-            wins = $.cookie('friendle.wins');
+            let wins = $.cookie('friendle.wins');
             if (wins != undefined) {
-                ours.wins = parseInt(wins)
+                ours.wins = Math.min(ours.count, parseInt(wins))
             }
         }
 
@@ -575,3 +592,7 @@ async function loadFriendle() {
     }
 }
 $(document).ready(loadFriendle);
+window.beforeunload = function() {
+    disconnectPeer();
+    disconnectServer();
+};
