@@ -112,7 +112,7 @@ class SimpleGameServer {
     }
 
     _handleDisconnect(server, socket) {
-	//#console.log("disconnect: " + socket.id);
+	//console.log("disconnect: " + socket.id);
         this._unpeer(server, socket);
         this.waiting.del(socket.id);
     }

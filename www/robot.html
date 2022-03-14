@@ -1,0 +1,79 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Friendle: wordle with friends</title>
+    <link rel="stylesheet" href="friendle.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.socket.io/socket.io-3.0.5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script src="simplepeer.min.js"></script>
+    <script src="friendle.js"></script>
+    <script src="robot.js"></script>
+  </head>
+  <body>
+    <div class="game">
+      <div id="header">Friendle</div>
+      <div class="board">
+        <table>
+	  <tr><th colspan="5"><span id="you" class="name">You</span><span id="youscore", class="score"></span></th></tr>
+          <tr><td id="000"></td><td id="001"></td><td id="002"></td><td id="003"></td><td id="004"></td></tr>
+          <tr><td id="010"></td><td id="011"></td><td id="012"></td><td id="013"></td><td id="014"></td></tr>
+          <tr><td id="020"></td><td id="021"></td><td id="022"></td><td id="023"></td><td id="024"></td></tr>
+          <tr><td id="030"></td><td id="031"></td><td id="032"></td><td id="033"></td><td id="034"></td></tr>
+          <tr><td id="040"></td><td id="041"></td><td id="042"></td><td id="043"></td><td id="044"></td></tr>
+          <tr><td id="050"></td><td id="051"></td><td id="052"></td><td id="053"></td><td id="054"></td></tr>
+        </table>
+      </div>
+      <div class="board">
+        <table>
+	  <tr><th colspan="5" ><span id="friend" class="name">Friend</span><span id="friendscore" class="score"></span></th></tr>
+          <tr><td id="100"></td><td id="101"></td><td id="102"></td><td id="103"></td><td id="104"></td></tr>
+          <tr><td id="110"></td><td id="111"></td><td id="112"></td><td id="113"></td><td id="114"></td></tr>
+          <tr><td id="120"></td><td id="121"></td><td id="122"></td><td id="123"></td><td id="124"></td></tr>
+          <tr><td id="130"></td><td id="131"></td><td id="132"></td><td id="133"></td><td id="134"></td></tr>
+          <tr><td id="140"></td><td id="141"></td><td id="142"></td><td id="143"></td><td id="144"></td></tr>
+          <tr><td id="150"></td><td id="151"></td><td id="152"></td><td id="153"></td><td id="154"></td></tr>
+        </table>
+      </div>
+      <div id="msg"></div>
+      <div class="keyboard">
+        <div class="row">
+          <div id="Q">Q</div>
+          <div id="W">W</div>
+          <div id="E">E</div>
+          <div id="R">R</div>
+          <div id="T">T</div>
+          <div id="Y">Y</div>
+          <div id="U">U</div>
+          <div id="I">I</div>
+          <div id="O">O</div>
+          <div id="P">P</div>
+        </div>
+        <div class="row">
+          <div id="A">A</div>
+          <div id="S">S</div>
+          <div id="D">D</div>
+          <div id="F">F</div>
+          <div id="G">G</div>
+          <div id="H">H</div>
+          <div id="J">J</div>
+          <div id="K">K</div>
+          <div id="L">L</div>
+          <div id="backspace">&#9003;</div>
+        </div>
+        <div class="row">
+          <div id="Z">Z</div>
+          <div id="X">X</div>
+          <div id="C">C</div>
+          <div id="V">V</div>
+          <div id="B">B</div>
+          <div id="N">N</div>
+          <div id="M">M</div>
+          <div id="enter">enter</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
