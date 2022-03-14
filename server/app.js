@@ -46,8 +46,8 @@ class SimpleGameServer {
             cors: {
                 origin: '*',
             },
-	    pingInterval: 10000,
-            pingTimeout: 20000,
+	    pingInterval: 1000,
+            pingTimeout: 2000,
         });
 
         server.sockets.on('connection', (socket) => {
